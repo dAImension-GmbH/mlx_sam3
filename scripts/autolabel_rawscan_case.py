@@ -159,6 +159,7 @@ def main() -> int:
 
     total_uploaded = 0
     skipped_frames = 0
+    skipped_predictions = 0
     for target_index, target in enumerate(targets, start=1):
         print(
             f"[{target_index}/{len(targets)}] frame_group_id={target.frame_group_id} "
@@ -180,14 +181,22 @@ def main() -> int:
             continue
 
         for prediction_index, prediction in enumerate(predictions, start=1):
-            label_id = upload_polygon_prediction(
-                sdk,
-                case_id=case_id,
-                class_label=class_label,
-                description=args.description,
-                prediction=prediction,
-                frame_group_id=target.frame_group_id,
-            )
+            try:
+                label_id = upload_polygon_prediction(
+                    sdk,
+                    case_id=case_id,
+                    class_label=class_label,
+                    description=args.description,
+                    prediction=prediction,
+                    frame_group_id=target.frame_group_id,
+                )
+            except Exception as error:
+                skipped_predictions += 1
+                print(
+                    f"  [{prediction_index}/{len(predictions)}] skipping prediction after upload retries: {error}"
+                )
+                continue
+
             total_uploaded += 1
             print(
                 f"  [{prediction_index}/{len(predictions)}] uploaded label_id={label_id} "
@@ -196,7 +205,7 @@ def main() -> int:
 
     print(
         f"Finished. Uploaded {total_uploaded} polygon label(s) across {len(targets)} frame group(s). "
-        f"Skipped {skipped_frames} frame(s) due to errors."
+        f"Skipped {skipped_frames} frame(s) due to frame errors and {skipped_predictions} prediction(s) due to upload errors."
     )
     return 0
 

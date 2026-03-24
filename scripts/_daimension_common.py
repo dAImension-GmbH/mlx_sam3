@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 from dataclasses import dataclass
 from http.client import IncompleteRead
 from io import BytesIO
@@ -232,16 +233,29 @@ def upload_polygon_prediction(
     prediction: SegmentationPrediction,
     frame_group_id: int | None = None,
 ) -> int:
-    _, label_id = sdk.add_image_label_to_case(
-        case_id=case_id,
-        class_labels=[class_label],
-        label=build_polygon_label_json(prediction.points),
-        label_type="POLYGON",
-        description=description,
-        is_auto=True,
-        frame_group_id=frame_group_id,
-    )
-    return int(label_id)
+    last_error: Exception | None = None
+    for attempt in range(4):
+        try:
+            _, label_id = sdk.add_image_label_to_case(
+                case_id=case_id,
+                class_labels=[class_label],
+                label=build_polygon_label_json(prediction.points),
+                label_type="POLYGON",
+                description=description,
+                is_auto=True,
+                frame_group_id=frame_group_id,
+            )
+            return int(label_id)
+        except Exception as error:
+            last_error = error
+            if attempt < 3:
+                print(f"  upload failed, retrying in 1s ({attempt + 1}/3): {error}")
+                time.sleep(1)
+                continue
+            break
+
+    assert last_error is not None
+    raise RuntimeError(f"Failed to upload polygon label after 3 retries: {last_error}") from last_error
 
 
 def validate_case_dataset(case_data: Any, dataset_id: int, case_number: int) -> int:
