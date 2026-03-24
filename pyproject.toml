@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "daimension-python-sdk",
     "ftfy>=6.3.1",
     "huggingface-hub>=1.1.6",
     "iopath>=0.1.10",
@@ -29,3 +30,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["sam3", "sam3.model"]
+
+[tool.uv.sources]
+daimension-python-sdk = { path = "../dAImension-Python-SDK", editable = true }
